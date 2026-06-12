@@ -31,6 +31,11 @@
 #define SINE_FREQ   1000
 #define SINE_SAMPLES 48
 #define AUDIO_BUFFER_SIZE 96
+#define RECORD_SECONDS    3
+#define RECORD_SAMPLES    (SAMPLE_RATE * RECORD_SECONDS)  // *2 for stereo
+#define CHUNK_SIZE        32000
+
+int16_t record_buffer[RECORD_SAMPLES];  // 288000 samples = 576KB — see note below
 
 int16_t audio_buffer[AUDIO_BUFFER_SIZE];
 
@@ -155,16 +160,18 @@ void WM8960_Init(void)
     printf("Clocking2: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
 
     // Power 1: VMIDSEL=01, VREF=1
-    ret = WM8960_Write(0x19, 0x0C0);
-    printf("Power1: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
-    HAL_Delay(100); // Let VMID charge up
+	ret = WM8960_Write(0x19, 0x0FE);
+	printf("Power1: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
+	HAL_Delay(100); // Let VMID charge up
 
     // Power 2: DACL, DACR, LOUT1, ROUT1
-    ret = WM8960_Write(0x1A, 0x1E0);
-    printf("Power2: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
+	ret = WM8960_Write(0x1A, 0x1E0);
+	printf("Power2: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
+
+	HAL_Delay(100); // Let VMID charge up
 
     // Power 3: LOMIX, ROMIX
-    ret = WM8960_Write(0x2F, 0x00C);
+    ret = WM8960_Write(0x2F, 0x03C);
     printf("Power3: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
 
     // Audio format: I2S, 16-bit, SLAVE mode (MS=0)
@@ -193,6 +200,20 @@ void WM8960_Init(void)
     ret = WM8960_Write(0x03, 0x179);
     printf("ROUT1: %s\r\n", ret == HAL_OK ? "OK" : "FAIL");
 
+//MIC registers set
+
+    // Left input path: LINPUT1 -> PGA non-inverting, MIC to boost
+    WM8960_Write(0x20, 0x108);
+    WM8960_Write(0x21, 0x108);   // same for right
+
+    // PGA input volume: 0dB
+    WM8960_Write(0x00, 0x13F);
+    WM8960_Write(0x01, 0x13F);
+
+    // ADC digital volume: 0dB
+    WM8960_Write(0x15, 0x1FF);
+    WM8960_Write(0x16, 0x1FF);
+
     printf("WM8960 init done\r\n");
 }
 
@@ -213,6 +234,21 @@ void WM8960_Enable_Speaker(void)
     printf("Speaker enabled\r\n");
 }
 
+//void Record_Audio(void)
+//{
+//    for (int i = 0; i < RECORD_SAMPLES; i=RECORD_SAMPLES)
+//    {
+//
+//
+//        HAL_I2S_Receive(&hi2s1,
+//                        (uint16_t*)record_buffer + i,
+//                        100,
+//                        2000);
+//
+//        BSP_LED_Toggle(LED_RED);
+//        HAL_Delay(100);
+//    }
+//}
 /* USER CODE END 0 */
 
 /**
@@ -288,12 +324,13 @@ int main(void)
   {
       printf("I2S NOT ready\r\n");
   }
-
+  //Record_Audio();
+  printf("Recording done/n");
 //
 //  HAL_I2S_Receive(&hi2s1,(uint16_t*)audio_buffer,
 //  	                                     AUDIO_BUFFER_SIZE,
 //  	                                     HAL_MAX_DELAY);
-
+  //int total_chunks = (RECORD_SECONDS * 1000) + 500;
   while (1)
   {
 
@@ -303,10 +340,20 @@ int main(void)
 
 
 
-	      fill_audio_buffer();
-	      HAL_I2S_Transmit(&hi2s1,(uint16_t*)audio_buffer,
-	                                     AUDIO_BUFFER_SIZE,
-	                                     HAL_MAX_DELAY);
+    	  HAL_I2S_Receive(&hi2s1,
+                      (uint16_t*)record_buffer,
+                      RECORD_SAMPLES,
+                      (RECORD_SECONDS * 1000) + 500);
+
+
+
+
+
+      //HAL_Delay(1000);
+
+	      //fill_audio_buffer();
+	      HAL_I2S_Transmit(&hi2s1,(uint16_t*)record_buffer,
+	    		  RECORD_SAMPLES,(RECORD_SECONDS * 1000) + 500);
 
 
 
