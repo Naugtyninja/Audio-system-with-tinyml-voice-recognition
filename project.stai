@@ -1,0 +1,15 @@
+{
+  "toolchain": "STM32CubeIDE",
+  "variant": "ApplicationTemplate",
+  "fromMx": true,
+  "isGenerated": true,
+  "name": "Music_system_with CodecDriver",
+  "createdAt": 1781637939253,
+  "lastModified": 1781637939288,
+  "lastAccessed": 1781637939287,
+  "type": "MxProject",
+  "mcu": "STM32H753ZIT6",
+  "board": "NUCLEO-H753ZI",
+  "ioc": "",
+  "generator": "STM32CubeMX1"
+}
